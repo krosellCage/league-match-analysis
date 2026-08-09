@@ -1,7 +1,13 @@
-# Local match cache - your own game data, never published
+# Local match caches. These hold real accounts' game history and PUUIDs,
+# so no cache directory is ever committed - whatever it is named.
 data/
+data-*/
 
-# Reports
-*.md.bak
+# Generated reports. These contain a specific account's statistics by name.
+rapor-*.html
+sunum-*.html
 report.md
+*.json.partial
+
+# Logs
 *.log
