@@ -1,0 +1,7 @@
+# Local match cache - your own game data, never published
+data/
+
+# Reports
+*.md.bak
+report.md
+*.log
