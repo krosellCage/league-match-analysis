@@ -1,4 +1,4 @@
-# jungle-coaching-guide
+# league-match-analysis
 
 Measures the things that actually decide League of Legends games, from your own
 match history. No dependencies — PowerShell 7 and the Riot API, nothing to
@@ -9,8 +9,8 @@ where you were sixty seconds before each objective died, what state you entered
 your fights in, whether your lane lead ever became a win, and what time of day
 you actually play worse.
 
-It started as a jungle tool and grew a lane analyser and an HTML report
-generator, so the name is now narrower than the contents.
+It started as a jungle tool, then grew a lane analyser, a wide cross-queue pass
+and an HTML report generator.
 
 ```
 DÖNÜŞÜM (15. dakikadaki duruma göre kazanma)
@@ -170,7 +170,8 @@ MIT — see [LICENSE](LICENSE).
 
 ---
 
-jungle-coaching-guide isn't endorsed by Riot Games and doesn't reflect the views
+league-match-analysis isn't endorsed by Riot Games and doesn't reflect the views
 or opinions of Riot Games or anyone officially involved in producing or managing
 Riot Games properties. Riot Games and all associated properties are trademarks
 or registered trademarks of Riot Games, Inc.
+
