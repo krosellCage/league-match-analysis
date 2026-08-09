@@ -9,7 +9,7 @@
 param(
     [string]$DataDir = "$PSScriptRoot\data",
     [double]$MinDurationMinutes = 8,
-    [int]$UtcOffsetHours = 3,          # TR local time
+    [int]$UtcOffsetHours = 3,          # local time offset (3 = Turkey)
     [int]$SoloDeathUnits = 4000,       # no ally this close = died alone
     [string]$JsonOut
 )
@@ -17,13 +17,13 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $QueueNames = @{
-    400='Normal Draft'; 420='Dereceli Tekli'; 430='Normal Kör'; 440='Dereceli Esnek'
-    450='ARAM'; 490='Hızlı Oyun'; 700='Clash'; 720='ARAM Clash'
-    830='Co-op Giriş'; 840='Co-op Orta'; 850='Co-op Zor'
+    400='Normal Draft'; 420='Ranked Solo/Duo'; 430='Normal Blind'; 440='Ranked Flex'
+    450='ARAM'; 490='Quickplay'; 700='Clash'; 720='ARAM Clash'
+    830='Co-op Intro'; 840='Co-op Beginner'; 850='Co-op Intermediate'
     # Verified against the cached matches: 1700/1710/1740/1750 are all map 30
     # (CHERRY), i.e. Arena variants, so they are grouped under one name.
     1700='Arena'; 1710='Arena'; 1740='Arena'; 1750='Arena'
-    710='Diğer (Rift)'; 1900='URF'; 900='URF'
+    710='Other (Rift)'; 1900='URF'; 900='URF'
 }
 $MapNames = @{ 11='Summoner''s Rift'; 12='Howling Abyss'; 21='Nexus Blitz'; 30='Arena' }
 
@@ -79,14 +79,14 @@ foreach ($mf in (Get-ChildItem $matchDir -Filter *.json | Sort-Object Name)) {
 
     $qid   = [int]$match.info.queueId
     $mapId = [int]$match.info.mapId
-    $queue = if ($QueueNames.ContainsKey($qid)) { $QueueNames[$qid] } else { "Kuyruk $qid" }
-    $map   = if ($MapNames.ContainsKey($mapId)) { $MapNames[$mapId] } else { "Harita $mapId" }
+    $queue = if ($QueueNames.ContainsKey($qid)) { $QueueNames[$qid] } else { "Queue $qid" }
+    $map   = if ($MapNames.ContainsKey($mapId)) { $MapNames[$mapId] } else { "Map $mapId" }
 
     $myId = [int]$me.participantId; $myTeam = [int]$me.teamId
-    $role = [string]$me.teamPosition; if ([string]::IsNullOrWhiteSpace($role)) { $role = 'YOK' }
+    $role = [string]$me.teamPosition; if ([string]::IsNullOrWhiteSpace($role)) { $role = 'NONE' }
 
     $opp = $match.info.participants |
-        Where-Object { [int]$_.teamId -ne $myTeam -and [string]$_.teamPosition -eq $role -and $role -ne 'YOK' } |
+        Where-Object { [int]$_.teamId -ne $myTeam -and [string]$_.teamPosition -eq $role -and $role -ne 'NONE' } |
         Select-Object -First 1
 
     # --- lane and team differentials at the standard checkpoints ---
@@ -166,7 +166,7 @@ foreach ($mf in (Get-ChildItem $matchDir -Filter *.json | Sort-Object Name)) {
         queueId = $qid; queue = $queue; mapId = $mapId; map = $map
         role = $role; champion = [string]$me.championName
         opponent = if ($opp) { [string]$opp.championName } else { '' }
-        win = [bool]$me.win; side = $(if ($myTeam -eq 100) { 'Mavi' } else { 'Kırmızı' })
+        win = [bool]$me.win; side = $(if ($myTeam -eq 100) { 'Blue' } else { 'Red' })
         durationMin = [math]::Round($durMin,1)
         kills=[int]$me.kills; deaths=[int]$me.deaths; assists=[int]$me.assists
         csPerMin     = [math]::Round($cs/$durMin,2)
@@ -190,7 +190,7 @@ foreach ($mf in (Get-ChildItem $matchDir -Filter *.json | Sort-Object Name)) {
 if ($games.Count -eq 0) { throw "No usable games in $DataDir" }
 
 $sr    = @($games | Where-Object { $_.mapId -eq 11 })          # Summoner's Rift only
-$laned = @($sr | Where-Object { $_.role -ne 'YOK' })
+$laned = @($sr | Where-Object { $_.role -ne 'NONE' })
 $sorted = @($games | Sort-Object startMs)
 
 $out = [ordered]@{
@@ -239,9 +239,9 @@ $out.conversion.laneBehind15 = @{ games=@($withLane15|Where-Object{$_.goldDiff15
 
 # game length
 $out.byLength = @(
-    @{ name='0-25 dk';  games=@($sr|Where-Object{$_.durationMin -lt 25}).Count; winRate=(Rate ($sr|Where-Object{$_.durationMin -lt 25})) }
-    @{ name='25-32 dk'; games=@($sr|Where-Object{$_.durationMin -ge 25 -and $_.durationMin -lt 32}).Count; winRate=(Rate ($sr|Where-Object{$_.durationMin -ge 25 -and $_.durationMin -lt 32})) }
-    @{ name='32+ dk';   games=@($sr|Where-Object{$_.durationMin -ge 32}).Count; winRate=(Rate ($sr|Where-Object{$_.durationMin -ge 32})) }
+    @{ name='0-25 min';  games=@($sr|Where-Object{$_.durationMin -lt 25}).Count; winRate=(Rate ($sr|Where-Object{$_.durationMin -lt 25})) }
+    @{ name='25-32 min'; games=@($sr|Where-Object{$_.durationMin -ge 25 -and $_.durationMin -lt 32}).Count; winRate=(Rate ($sr|Where-Object{$_.durationMin -ge 25 -and $_.durationMin -lt 32})) }
+    @{ name='32+ min';   games=@($sr|Where-Object{$_.durationMin -ge 32}).Count; winRate=(Rate ($sr|Where-Object{$_.durationMin -ge 32})) }
 )
 
 # averages
@@ -287,29 +287,30 @@ if ($srSorted.Count -ge 10) {
 if ($JsonOut) { $out | ConvertTo-Json -Depth 12 | Set-Content $JsonOut -Encoding UTF8; Write-Host "written to $JsonOut" -ForegroundColor Green }
 
 # --- console ---
-"HESAP        $($out.account)"
-"MACLAR       $($out.totalGames) gecerli ($($out.remakesExcluded) remake elendi)  $($out.firstDate) -> $($out.lastDate)"
-"KAZANMA      %$($out.overallWinRate)   Rift: $($out.riftGames)  koridorlu: $($out.lanedGames)"
+"ACCOUNT      $($out.account)"
+"GAMES        $($out.totalGames) valid ($($out.remakesExcluded) remakes excluded)  $($out.firstDate) -> $($out.lastDate)"
+"WIN RATE     $($out.overallWinRate)%   Rift: $($out.riftGames)  with a lane: $($out.lanedGames)"
 ""
-"KUYRUKLAR"; $out.byQueue | ForEach-Object { "  {0,-16} {1,4}g  %{2,-4} olum {3}  kp %{4}" -f $_.name,$_.games,$_.winRate,$_.deaths,$_.kp }
+"QUEUES"; $out.byQueue | ForEach-Object { "  {0,-18} {1,4}g  {2,3}%  deaths {3}  kp {4}%" -f $_.name,$_.games,$_.winRate,$_.deaths,$_.kp }
 ""
-"DONUSUM (15. dakikadaki duruma gore kazanma)"
-"  takim 1500+ onde   {0,3}g  %{1}" -f $out.conversion.teamAhead15.games, $out.conversion.teamAhead15.winRate
-"  takim basabas      {0,3}g  %{1}" -f $out.conversion.teamEven15.games, $out.conversion.teamEven15.winRate
-"  takim 1500+ geride {0,3}g  %{1}" -f $out.conversion.teamBehind15.games, $out.conversion.teamBehind15.winRate
-"  KORIDOR onde       {0,3}g  %{1}" -f $out.conversion.laneAhead15.games, $out.conversion.laneAhead15.winRate
-"  KORIDOR geride     {0,3}g  %{1}" -f $out.conversion.laneBehind15.games, $out.conversion.laneBehind15.winRate
+"CONVERSION (win rate given the state at 15 minutes)"
+"  team 1500+ ahead    {0,3}g  {1,3}%" -f $out.conversion.teamAhead15.games, $out.conversion.teamAhead15.winRate
+"  team even           {0,3}g  {1,3}%" -f $out.conversion.teamEven15.games, $out.conversion.teamEven15.winRate
+"  team 1500+ behind   {0,3}g  {1,3}%" -f $out.conversion.teamBehind15.games, $out.conversion.teamBehind15.winRate
+"  YOUR LANE ahead     {0,3}g  {1,3}%" -f $out.conversion.laneAhead15.games, $out.conversion.laneAhead15.winRate
+"  YOUR LANE behind    {0,3}g  {1,3}%" -f $out.conversion.laneBehind15.games, $out.conversion.laneBehind15.winRate
 ""
-"MAC SURESI"; $out.byLength | ForEach-Object { "  {0,-10} {1,3}g  %{2}" -f $_.name,$_.games,$_.winRate }
+"GAME LENGTH"; $out.byLength | ForEach-Object { "  {0,-10} {1,3}g  {2,3}%" -f $_.name,$_.games,$_.winRate }
 ""
-"ROLLER"; $out.byRole | ForEach-Object { "  {0,-9} {1,3}g  %{2,-4} cs {3,-5} gd10 {4,6}  gd15 {5,6}  olum {6,-4} kp %{7,-3} hasar %{8}" -f $_.name,$_.games,$_.winRate,$_.csPerMin,$_.goldDiff10,$_.goldDiff15,$_.deaths,$_.kp,$_.dmgShare }
+"ROLES"; $out.byRole | ForEach-Object { "  {0,-9} {1,3}g  {2,3}%  cs {3,-5} gd10 {4,6}  gd15 {5,6}  deaths {6,-5} kp {7,3}%  dmg {8,3}%" -f $_.name,$_.games,$_.winRate,$_.csPerMin,$_.goldDiff10,$_.goldDiff15,$_.deaths,$_.kp,$_.dmgShare }
 ""
-"SAMPIYONLAR (3+ mac)"; $out.byChampion | ForEach-Object { "  {0,-14} {1,3}g  {2}W  %{3,-4} cs {4,-5} gd10 {5,6}  olum {6,-5} hasar %{7}" -f $_.name,$_.games,$_.wins,$_.winRate,$_.csPerMin,$_.goldDiff10,$_.deaths,$_.dmgShare }
+"CHAMPIONS (3+ games)"; $out.byChampion | ForEach-Object { "  {0,-14} {1,3}g  {2}W  {3,3}%  cs {4,-5} gd10 {5,6}  deaths {6,-5} dmg {7,3}%" -f $_.name,$_.games,$_.wins,$_.winRate,$_.csPerMin,$_.goldDiff10,$_.deaths,$_.dmgShare }
 ""
-"OLUMLER"
-"  mac basi {0}   ilk 15dk {1}   YALNIZ olen {2} (tum olumlerin %{3})   ilk olum {4}. dk" -f $out.averages.deaths,$out.averages.earlyDeaths,$out.averages.soloDeaths,$out.soloDeathPct,$out.averages.firstDeathMin
-"  saat dilimi:"; $out.deathClock | ForEach-Object { "    {0,2}-{1,2} dk  {2}" -f $_.from,$_.to,$_.deaths }
+"DEATHS"
+"  per game {0}   first 15 min {1}   ALONE {2} ({3}% of all deaths)   first death at {4} min" -f $out.averages.deaths,$out.averages.earlyDeaths,$out.averages.soloDeaths,$out.soloDeathPct,$out.averages.firstDeathMin
+"  across the clock:"; $out.deathClock | ForEach-Object { "    {0,2}-{1,2} min  {2}" -f $_.from,$_.to,$_.deaths }
 ""
-"SAATE GORE"; $out.byHour | ForEach-Object { "  {0}  {1,3}g  %{2,-4} olum {3}" -f $_.band,$_.games,$_.winRate,$_.deaths }
+"BY HOUR (local)"; $out.byHour | ForEach-Object { "  {0}  {1,3}g  {2,3}%  deaths {3}" -f $_.band,$_.games,$_.winRate,$_.deaths }
 ""
 "TREND"; if ($out.trend) { $out.trend.GetEnumerator() | Sort-Object Name | ForEach-Object { "  {0,-18} {1}  ->  {2}" -f $_.Name,$_.Value.older,$_.Value.newer } }
+

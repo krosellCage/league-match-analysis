@@ -5,9 +5,11 @@ data-*/
 
 # Generated reports. These contain a specific account's statistics by name.
 rapor-*.html
+report-*.html
 sunum-*.html
 report.md
 *.json.partial
 
 # Logs
 *.log
+

@@ -13,14 +13,14 @@ It started as a jungle tool, then grew a lane analyser, a wide cross-queue pass
 and an HTML report generator.
 
 ```
-DÖNÜŞÜM (15. dakikadaki duruma göre kazanma)
-  takım 1500+ önde    74g  %80
-  KORİDOR önde       102g  %65      <- wins lane, doesn't convert it
-  takım 1500+ geride  65g  %25
+CONVERSION (win rate given the state at 15 minutes)
+  team 1500+ ahead     74g   80%
+  YOUR LANE ahead     102g   65%     <- wins lane, doesn't convert it
+  team 1500+ behind    65g   25%
 
-SAATE GÖRE
-  12:00-16:00   34g  %65
-  20:00-24:00   63g  %46      <- 17 points, ~90 games each side
+BY HOUR (local)
+  12:00-16:00   34g   65%
+  20:00-24:00   63g   46%     <- 19 points, ~90 games each side
 ```
 
 ---
@@ -103,14 +103,14 @@ The wide pass, across every queue:
 
 ### Report — `Report.ps1`
 
-Turns `AnalyzeFull.ps1`'s JSON into a self-contained HTML report (currently
-Turkish), light and dark themed, with a death-distribution chart. Generated from
+Turns `AnalyzeFull.ps1`'s JSON into a self-contained HTML report, light and
+dark themed, with a death-distribution chart. Generated from
 data rather than hand-written, so re-running after new games produces a report
 with no stale numbers anywhere in it.
 
 ```powershell
 .\AnalyzeFull.ps1 -DataDir .\data -JsonOut .\full.json
-.\Report.ps1 -JsonIn .\full.json -HtmlOut .\rapor.html
+.\Report.ps1 -JsonIn .\full.json -HtmlOut .\report.html
 ```
 
 ---
@@ -174,4 +174,6 @@ league-match-analysis isn't endorsed by Riot Games and doesn't reflect the views
 or opinions of Riot Games or anyone officially involved in producing or managing
 Riot Games properties. Riot Games and all associated properties are trademarks
 or registered trademarks of Riot Games, Inc.
+
+
 
